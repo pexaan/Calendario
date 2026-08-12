@@ -1,0 +1,1402 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Calendário das Matérias — 2026/2</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700;800&display=swap');
+
+:root{
+  --paper:#FFFFFF;
+  --ink:#25241F;
+  --ink-soft:#5B584E;
+  --line:#E2E2E2;
+  --card:#FFFFFF;
+  --gold:#AD7418;
+  --wine:#A63446;
+  --teal:#1B6E62;
+  --gray:#8A8578;
+  --focus:#2F6FA8;
+  --exam-fill:#F7F7F5;
+  --weekend-bg:#F2F2EF;
+  --overlay-bg:rgba(30,28,22,.45);
+  --shadow:rgba(0,0,0,.12);
+  --done-overlay:rgba(20,18,14,.16);
+  --done-x:rgba(20,18,14,.32);
+  color-scheme: light;
+}
+html[data-theme="dark"]{
+  --paper:#171612;
+  --ink:#EDE9DC;
+  --ink-soft:#A8A296;
+  --line:#3A372F;
+  --card:#211F1A;
+  --exam-fill:#2A271F;
+  --weekend-bg:#1E1C17;
+  --overlay-bg:rgba(0,0,0,.6);
+  --done-overlay:rgba(255,255,255,.10);
+  --done-x:rgba(255,255,255,.6);
+  --shadow:rgba(0,0,0,.4);
+  color-scheme: dark;
+}
+html{background:var(--paper);}
+body{transition:background-color .2s ease, color .2s ease;}
+.day, .card, .event-card, .legend label, .exam-key, .aed-key, .sheet, .evt, .overlay{
+  transition:background-color .2s ease, border-color .2s ease, color .2s ease;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html{-webkit-text-size-adjust:100%;}
+body{
+  margin:0;
+  background:var(--paper);
+  color:var(--ink);
+  font-family:'Inter',sans-serif;
+  padding:20px 14px 50px;
+}
+.wrap{max-width:960px;margin:0 auto;}
+
+header.top{margin-bottom:18px;}
+.top-row{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;}
+.theme-toggle{
+  flex:none;
+  width:42px;height:42px;
+  border-radius:50%;
+  border:1.5px solid var(--line);
+  background:var(--card);
+  color:var(--ink);
+  font-size:17px;
+  cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  margin-top:2px;
+  transition:background-color .2s ease, border-color .2s ease, transform .15s ease;
+}
+.theme-toggle:active{transform:scale(0.92);}
+.theme-toggle .icon-moon{display:none;}
+html[data-theme="dark"] .theme-toggle .icon-sun{display:none;}
+html[data-theme="dark"] .theme-toggle .icon-moon{display:inline;}
+h1{
+  font-family:'Fraunces',serif;
+  font-weight:600;
+  font-size:clamp(24px,6vw,40px);
+  margin:0 0 6px;
+  letter-spacing:-0.01em;
+  line-height:1.1;
+}
+.sub{color:var(--ink-soft);font-size:14px;line-height:1.5;max-width:620px;}
+
+.progress{display:flex;align-items:center;gap:7px;margin:14px 0 2px;flex-wrap:wrap;}
+.progress .dot{width:10px;height:10px;border-radius:50%;border:1.5px solid var(--ink-soft);flex:none;}
+.progress .dot.filled{background:var(--focus);border-color:var(--focus);}
+.progress-label{font-size:12.5px;color:var(--ink-soft);margin-left:4px;}
+
+/* ---------- legend as equal-width pills ---------- */
+.legend{
+  display:grid;
+  grid-template-columns:repeat(2, 1fr);
+  gap:8px;
+  margin:18px 0 22px;
+}
+@media (min-width:560px){
+  .legend{grid-template-columns:repeat(4, 1fr);}
+}
+.legend label{
+  display:flex;align-items:center;gap:7px;
+  font-size:12.5px;font-weight:600;
+  padding:10px 10px;
+  border-radius:10px;
+  border:1.5px solid var(--line);
+  background:var(--card);
+  cursor:pointer;user-select:none;
+  min-height:40px;
+  transition:opacity .15s;
+}
+.legend label.off{opacity:.4;}
+.legend input{display:none;}
+.swatch{width:12px;height:12px;border-radius:50%;flex:none;box-shadow:0 0 0 2px rgba(0,0,0,.05) inset;}
+.legend .exam-key,.legend .aed-key{
+  grid-column:span 1;
+  display:flex;align-items:center;gap:7px;
+  font-size:12.5px;font-weight:700;
+  padding:10px 10px;border-radius:10px;
+  border:1.5px solid var(--line);background:var(--card);
+  min-height:40px;
+}
+.exam-key{color:var(--ink);}
+.exam-key .mini-ring{
+  display:inline-block;width:12px;height:12px;border-radius:50%;
+  background:conic-gradient(var(--wine) 0% 33%, var(--teal) 33% 66%, var(--gold) 66% 100%);
+  flex:none;
+}
+.aed-key{color:var(--ink-soft);}
+
+/* ---------- month + grid ---------- */
+.month{margin-bottom:28px;}
+.month h2{
+  font-family:'Fraunces',serif;
+  font-weight:600;
+  font-size:19px;
+  margin:0 0 8px;
+  padding-bottom:5px;
+  border-bottom:2px solid var(--ink);
+  display:inline-block;
+}
+.grid{
+  display:grid;
+  grid-template-columns:repeat(7,1fr);
+  gap:5px;
+}
+.wd{
+  text-align:center;font-size:11px;font-weight:700;
+  color:var(--ink-soft);text-transform:uppercase;letter-spacing:.03em;
+  padding-bottom:4px;
+}
+
+/* Every day cell is the SAME size — fixed height + overflow hidden.
+   This is what keeps cards uniform regardless of content. */
+.day{
+  background:var(--card);
+  border:1px solid var(--line);
+  border-radius:8px;
+  height:clamp(62px, 15.5vw, 132px);
+  padding:5px 5px 3px;
+  position:relative;
+  overflow:hidden;
+  display:flex;
+  flex-direction:column;
+}
+.day.empty{background:transparent;border:none;}
+.day.weekend{background:var(--weekend-bg);}
+.day.has-events{cursor:pointer;}
+.day.has-events:active{transform:scale(0.97);}
+.day .num{font-size:13px;font-weight:700;color:var(--ink-soft);line-height:1;flex:none;}
+.day.today .num{color:var(--focus);}
+.day.today{outline:2px solid var(--focus);outline-offset:-1px;}
+
+/* exam days: border ring split into colored portions — one per subject
+   with a test that day. The split gradient itself comes in via the
+   --exam-grad custom property, set per-cell in JS. */
+.day.has-exam{
+  border:3px solid transparent;
+  border-radius:8px;
+  background-image: linear-gradient(var(--exam-fill), var(--exam-fill)), var(--exam-grad, conic-gradient(var(--ink-soft), var(--ink-soft)));
+  background-origin: border-box;
+  background-clip: padding-box, border-box;
+}
+.day.has-exam .num{color:var(--ink);font-weight:800;}
+.day.has-exam::after{
+  content:"★";
+  position:absolute;top:3px;right:5px;
+  font-size:12px;color:var(--ink);
+}
+
+/* "concluído" state: darken + big X watermark */
+.day.done{position:relative;}
+.day.done::before{
+  content:"";
+  position:absolute;inset:0;
+  background:var(--done-overlay);
+  pointer-events:none;
+  z-index:1;
+}
+.day.done::after{
+  content:"×";
+  position:absolute;inset:0;
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Inter',sans-serif;
+  font-size:clamp(26px,9vw,46px);
+  font-weight:700;
+  color:var(--done-x);
+  pointer-events:none;
+  z-index:2;
+}
+.day.done.has-exam::after{ content:"★×"; font-size:clamp(15px,5vw,26px); letter-spacing:1px;}
+
+/* text chips — shown on tablet/desktop */
+.evts-desktop{margin-top:3px;display:flex;flex-direction:column;gap:3px;overflow:hidden;flex:1;}
+.evt{
+  font-size:10.5px;line-height:1.4;font-weight:600;
+  padding:2.5px 6px;border-radius:5px;color:#fff;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:none;
+  box-shadow:0 1px 1px rgba(0,0,0,.12);
+}
+.evt.hidden{display:none;}
+.evt-fer{background:var(--gray)!important;}
+.evt.evt-exam{border:2px solid rgba(0,0,0,.4);font-weight:800;box-shadow:0 1px 2px rgba(0,0,0,.25);}
+.more-chip{
+  font-size:9.5px;font-weight:700;color:var(--ink-soft);
+  padding:0 4px;flex:none;
+}
+
+/* dot indicators — shown on phones */
+.evts-mobile{display:none;margin-top:auto;flex-wrap:wrap;gap:3px;align-items:center;}
+.evts-mobile .pdot{width:8px;height:8px;border-radius:50%;flex:none;}
+.evts-mobile .pdot-exam{box-shadow:0 0 0 2px rgba(0,0,0,.45);}
+.evts-mobile .pmore{font-size:9px;font-weight:700;color:var(--ink-soft);}
+
+@media (max-width:480px){
+  body{padding:14px 8px 40px;}
+  .evts-desktop{display:none;}
+  .evts-mobile{display:flex;}
+  .day{padding:3px;}
+  .day .num{font-size:11.5px;}
+  .wd{font-size:9.5px;}
+  .month h2{font-size:17px;}
+  .grid{gap:3px;}
+}
+
+/* ---------- detail modal (bottom sheet) ---------- */
+.overlay{
+  position:fixed;inset:0;background:var(--overlay-bg);
+  display:none;align-items:flex-end;justify-content:center;
+  z-index:50;
+}
+.overlay.open{display:flex;}
+@media (min-width:600px){
+  .overlay{align-items:center;}
+}
+.sheet{
+  background:var(--paper);
+  width:100%;max-width:480px;
+  max-height:80vh;overflow-y:auto;
+  border-radius:16px 16px 0 0;
+  padding:18px 18px 26px;
+  box-shadow:0 -4px 24px rgba(0,0,0,.2);
+}
+@media (min-width:600px){
+  .sheet{border-radius:16px;max-height:70vh;}
+}
+.sheet-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:12px;gap:10px;}
+.sheet-title{font-family:'Fraunces',serif;font-weight:600;font-size:19px;}
+.sheet-close{
+  background:none;border:none;font-size:22px;line-height:1;
+  color:var(--ink-soft);cursor:pointer;padding:4px 8px;flex:none;
+}
+.event-card{
+  display:flex;gap:10px;align-items:flex-start;
+  background:var(--card);border:1px solid var(--line);
+  border-radius:10px;padding:10px 12px;margin-bottom:8px;
+  border-left:5px solid var(--ink-soft);
+}
+.event-card.exam{border-left-width:6px;background:var(--exam-fill);}
+.event-card .disc-name{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.02em;color:var(--ink-soft);}
+.event-card.exam .disc-name{color:var(--ink);}
+.event-card .evt-title{font-size:14px;font-weight:500;margin-top:2px;line-height:1.35;}
+.event-card .evt-desc{font-size:12.5px;color:var(--ink-soft);margin-top:5px;line-height:1.4;font-style:italic;}
+.event-card .tag{font-size:10px;font-weight:700;margin-top:4px;display:inline-block;}
+.event-card.exam .tag{font-weight:800;}
+
+.done-toggle{
+  display:flex;align-items:center;gap:10px;
+  background:var(--card);border:1.5px solid var(--line);
+  border-radius:10px;padding:12px 14px;margin-bottom:14px;
+  font-size:14px;font-weight:600;cursor:pointer;user-select:none;
+}
+.done-toggle input{width:19px;height:19px;accent-color:var(--focus);cursor:pointer;flex:none;}
+.done-toggle.checked{background:var(--weekend-bg);border-color:var(--ink-soft);}
+
+footer.note{
+  margin-top:26px;font-size:12.5px;color:var(--ink-soft);
+  border-top:1px solid var(--line);padding-top:12px;
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="top-row">
+      <h1>Calendário das Matérias — 2026/2</h1>
+      <button id="themeToggle" class="theme-toggle" aria-label="Alternar modo claro/escuro" title="Alternar modo claro/escuro">
+        <span class="icon-sun">☀︎</span><span class="icon-moon">☾</span>
+      </button>
+    </div>
+    <p class="sub">Aulas, avaliações e Atividades Externas à Disciplina (AED) de agosto a dezembro de 2026. Toque em qualquer dia com marcações para ver os detalhes.</p>
+    <div class="progress" id="progress"></div>
+  </header>
+
+  <div class="legend" id="legend"></div>
+
+  <div id="calendar"></div>
+
+  <footer class="note">
+    Faltam <strong>2 Planos de Ensino</strong> para completar o semestre — quando você mandar, eu atualizo este calendário com as novas matérias.
+  </footer>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="sheet">
+    <div class="sheet-head">
+      <div class="sheet-title" id="sheetTitle"></div>
+      <button class="sheet-close" id="sheetClose" aria-label="Fechar">&times;</button>
+    </div>
+    <div id="sheetBody"></div>
+  </div>
+</div>
+
+<script type="application/json" id="events-data">[
+  {
+    "date": "2026-08-11",
+    "disc": "FIT1620",
+    "title": "Apresentação da turma",
+    "type": "aula"
+  },
+  {
+    "date": "2026-08-14",
+    "disc": "FIT1620",
+    "title": "Tema: A crença e a consciência tecnológica",
+    "type": "aula"
+  },
+  {
+    "date": "2026-08-18",
+    "disc": "FIT1620",
+    "title": "Vídeo: diálogo entre Fé Cristã e ciência",
+    "type": "aula"
+  },
+  {
+    "date": "2026-08-21",
+    "disc": "FIT1620",
+    "title": "Plano de ensino; filme Radioactive (Marie Curie)",
+    "type": "aula"
+  },
+  {
+    "date": "2026-08-25",
+    "disc": "FIT1620",
+    "title": "Preparação para tema da AED: Mulheres e Ciência",
+    "type": "aula"
+  },
+  {
+    "date": "2026-08-29",
+    "disc": "FIT1620",
+    "title": "Sagrado e profano na vida pessoal e coletiva",
+    "type": "aula"
+  },
+  {
+    "date": "2026-09-01",
+    "disc": "FIT1620",
+    "title": "Sagrado e profano (continuação)",
+    "type": "aula"
+  },
+  {
+    "date": "2026-09-04",
+    "disc": "FIT1620",
+    "title": "Conceitos de religião, transcendência e teologia",
+    "type": "aula"
+  },
+  {
+    "date": "2026-09-08",
+    "disc": "FIT1620",
+    "title": "Interpretações sobre as religiões",
+    "type": "aula"
+  },
+  {
+    "date": "2026-09-11",
+    "disc": "FIT1620",
+    "title": "Elementos: símbolo e mito (metodologia ativa)",
+    "type": "aula"
+  },
+  {
+    "date": "2026-09-15",
+    "disc": "FIT1620",
+    "title": "O rito, a doutrina e o diálogo",
+    "type": "aula"
+  },
+  {
+    "date": "2026-09-18",
+    "disc": "FIT1620",
+    "title": "Religião, sociedade e busca de sentidos",
+    "type": "aula"
+  },
+  {
+    "date": "2026-09-22",
+    "disc": "FIT1620",
+    "title": "Expressões coletivas de religiosidade (documentários)",
+    "type": "aula"
+  },
+  {
+    "date": "2026-09-25",
+    "disc": "FIT1620",
+    "title": "Religião e Alteridade",
+    "type": "aula"
+  },
+  {
+    "date": "2026-09-29",
+    "disc": "FIT1620",
+    "title": "Religião e gênero",
+    "type": "aula"
+  },
+  {
+    "date": "2026-10-02",
+    "disc": "FIT1620",
+    "title": "Religião e Paz",
+    "type": "aula"
+  },
+  {
+    "date": "2026-10-06",
+    "disc": "FIT1620",
+    "title": "Religião e Paz; Gênero e Alteridade",
+    "type": "aula"
+  },
+  {
+    "date": "2026-10-13",
+    "disc": "FIT1620",
+    "title": "Divulgação notas N1; orientações N2",
+    "type": "aula"
+  },
+  {
+    "date": "2026-10-16",
+    "disc": "FIT1620",
+    "title": "Fenômeno Religioso e Religião (estudo de caso)",
+    "type": "aula"
+  },
+  {
+    "date": "2026-10-20",
+    "disc": "FIT1620",
+    "title": "Animismo e Naturismo",
+    "type": "aula"
+  },
+  {
+    "date": "2026-10-27",
+    "disc": "FIT1620",
+    "title": "VIII Humanitas / Semana C&T - Mulher e Ciência",
+    "type": "aula"
+  },
+  {
+    "date": "2026-10-30",
+    "disc": "FIT1620",
+    "title": "VIII Humanitas / Semana C&T - Mulher e Ciência",
+    "type": "aula"
+  },
+  {
+    "date": "2026-11-03",
+    "disc": "FIT1620",
+    "title": "Totemismo como religião elementar",
+    "type": "aula"
+  },
+  {
+    "date": "2026-11-06",
+    "disc": "FIT1620",
+    "title": "Animal totêmico; totemismo e gênero",
+    "type": "aula"
+  },
+  {
+    "date": "2026-11-10",
+    "disc": "FIT1620",
+    "title": "Totem individual e sexual; exame crítico das teorias",
+    "type": "aula"
+  },
+  {
+    "date": "2026-11-13",
+    "disc": "FIT1620",
+    "title": "Noção de princípio (mana totêmico)",
+    "type": "aula"
+  },
+  {
+    "date": "2026-11-17",
+    "disc": "FIT1620",
+    "title": "Gênese da noção de mana totêmico",
+    "type": "aula"
+  },
+  {
+    "date": "2026-11-24",
+    "disc": "FIT1620",
+    "title": "A noção de Alma",
+    "type": "aula"
+  },
+  {
+    "date": "2026-11-27",
+    "disc": "FIT1620",
+    "title": "Noção de Espírito e deuses (aprendizagem por investigação)",
+    "type": "aula"
+  },
+  {
+    "date": "2026-12-01",
+    "disc": "FIT1620",
+    "title": "Normose: anomalias da normalidade",
+    "type": "aula"
+  },
+  {
+    "date": "2026-12-04",
+    "disc": "FIT1620",
+    "title": "Da Normose à Plenitude; Normose Religiosa",
+    "type": "aula"
+  },
+  {
+    "date": "2026-12-09",
+    "disc": "FIT1620",
+    "title": "Projeto Inteligências Múltiplas - visita I",
+    "type": "aula"
+  },
+  {
+    "date": "2026-12-15",
+    "disc": "FIT1620",
+    "title": "Atendimento de pendências",
+    "type": "aula"
+  },
+  {
+    "date": "2026-12-18",
+    "disc": "FIT1620",
+    "title": "Entrega de notas N2 - Encerramento do semestre",
+    "type": "aula"
+  },
+  {
+    "date": "2026-09-11",
+    "disc": "FIT1620",
+    "title": "Avaliação interativa (N1)",
+    "type": "avaliacao"
+  },
+  {
+    "date": "2026-09-18",
+    "disc": "FIT1620",
+    "title": "Avaliação interdisciplinar (N1)",
+    "type": "avaliacao"
+  },
+  {
+    "date": "2026-09-22",
+    "disc": "FIT1620",
+    "title": "Avaliação participante (N1, até 2,0)",
+    "type": "avaliacao"
+  },
+  {
+    "date": "2026-10-06",
+    "disc": "FIT1620",
+    "title": "Avaliação pela frequência (N1, até 3,0)",
+    "type": "avaliacao"
+  },
+  {
+    "date": "2026-10-09",
+    "disc": "FIT1620",
+    "title": "AED N1 - até 1,0 (VER e JULGAR)",
+    "type": "avaliacao",
+    "desc": "Atividade Reflexiva sobre os verbos VER e JULGAR — texto individual ou em duplas, entregue por escrito e apresentado em sala."
+  },
+  {
+    "date": "2026-10-13",
+    "disc": "FIT1620",
+    "title": "Avaliação produtiva (N1, até 4,0)",
+    "type": "avaliacao"
+  },
+  {
+    "date": "2026-10-30",
+    "disc": "FIT1620",
+    "title": "Avaliação produtiva (N2, até 3,0)",
+    "type": "avaliacao"
+  },
+  {
+    "date": "2026-11-03",
+    "disc": "FIT1620",
+    "title": "Avaliação Interdisciplinar - AI (até 1,0)",
+    "type": "avaliacao"
+  },
+  {
+    "date": "2026-11-13",
+    "disc": "FIT1620",
+    "title": "Avaliação pela frequência (N2, até 3,0)",
+    "type": "avaliacao"
+  },
+  {
+    "date": "2026-11-27",
+    "disc": "FIT1620",
+    "title": "Avaliação participante (N2, até 2,0)",
+    "type": "avaliacao"
+  },
+  {
+    "date": "2026-12-12",
+    "disc": "FIT1620",
+    "title": "AED N2 - até 1,0 (Agir e Celebrar/Comunicar)",
+    "type": "avaliacao",
+    "desc": "Encontro com lançamento de 4h de frequência virtual para quem entregar a proposta de relatório desta fase."
+  },
+  {
+    "date": "2026-10-26",
+    "disc": "FIT1620",
+    "title": "VIII HUMANITAS - Mesa de abertura (transmissão YouTube)",
+    "type": "aed"
+  },
+  {
+    "date": "2026-10-27",
+    "disc": "FIT1620",
+    "title": "VIII HUMANITAS / XII Congresso C&T&I",
+    "type": "aed"
+  },
+  {
+    "date": "2026-10-28",
+    "disc": "FIT1620",
+    "title": "VIII HUMANITAS / XII Congresso C&T&I",
+    "type": "aed"
+  },
+  {
+    "date": "2026-10-29",
+    "disc": "FIT1620",
+    "title": "VIII HUMANITAS / XII Congresso C&T&I",
+    "type": "aed"
+  },
+  {
+    "date": "2026-08-11",
+    "disc": "CMP2303",
+    "title": "Apresentação do plano de ensino",
+    "type": "aula"
+  },
+  {
+    "date": "2026-08-12",
+    "disc": "CMP2303",
+    "title": "Conceitos fundamentais de dados e SGBD; histórico dos modelos",
+    "type": "aula"
+  },
+  {
+    "date": "2026-08-18",
+    "disc": "CMP2303",
+    "title": "Modelos de dados: conceitual, lógico, físico; SGBD estudo de caso",
+    "type": "aula"
+  },
+  {
+    "date": "2026-08-19",
+    "disc": "CMP2303",
+    "title": "SGBD - estudo de caso (cont.)",
+    "type": "aula"
+  },
+  {
+    "date": "2026-08-25",
+    "disc": "CMP2303",
+    "title": "Independência de dados e integridade referencial",
+    "type": "aula"
+  },
+  {
+    "date": "2026-08-26",
+    "disc": "CMP2303",
+    "title": "Exercícios",
+    "type": "aula"
+  },
+  {
+    "date": "2026-09-01",
+    "disc": "CMP2303",
+    "title": "Introdução ao Modelo Entidade-Relacionamento (DER)",
+    "type": "aula"
+  },
+  {
+    "date": "2026-09-02",
+    "disc": "CMP2303",
+    "title": "Relacionamentos, graus e cardinalidade",
+    "type": "aula"
+  },
+  {
+    "date": "2026-09-08",
+    "disc": "CMP2303",
+    "title": "Construção de diagramas ER - exercícios práticos",
+    "type": "aula"
+  },
+  {
+    "date": "2026-09-09",
+    "disc": "CMP2303",
+    "title": "Exercícios",
+    "type": "aula"
+  },
+  {
+    "date": "2026-09-15",
+    "disc": "CMP2303",
+    "title": "Exercícios",
+    "type": "aula"
+  },
+  {
+    "date": "2026-09-22",
+    "disc": "CMP2303",
+    "title": "Projeto conceitual - modelagem de sistema completo (parte 1)",
+    "type": "aula"
+  },
+  {
+    "date": "2026-09-23",
+    "disc": "CMP2303",
+    "title": "Correção Avaliação 1a N1; introdução ao SQL - criação de BD/tabelas",
+    "type": "aula"
+  },
+  {
+    "date": "2026-09-29",
+    "disc": "CMP2303",
+    "title": "Complementos de criação de tabelas",
+    "type": "aula"
+  },
+  {
+    "date": "2026-09-30",
+    "disc": "CMP2303",
+    "title": "ALTER TABLE e DROP; exercícios",
+    "type": "aula"
+  },
+  {
+    "date": "2026-10-06",
+    "disc": "CMP2303",
+    "title": "Atividades complementares",
+    "type": "aula"
+  },
+  {
+    "date": "2026-10-13",
+    "disc": "CMP2303",
+    "title": "Exercícios práticos de DDL",
+    "type": "aula"
+  },
+  {
+    "date": "2026-10-14",
+    "disc": "CMP2303",
+    "title": "Projeto prático: requisitos e modelagem conceitual/lógica",
+    "type": "aula"
+  },
+  {
+    "date": "2026-10-20",
+    "disc": "CMP2303",
+    "title": "Projeto prático: implementação física do BD",
+    "type": "aula"
+  },
+  {
+    "date": "2026-10-21",
+    "disc": "CMP2303",
+    "title": "Projeto prático: dados de teste e apresentação",
+    "type": "aula"
+  },
+  {
+    "date": "2026-10-27",
+    "disc": "CMP2303",
+    "title": "XII Congresso de Ciência, Tecnologia e Inovação PUC Goiás",
+    "type": "aula"
+  },
+  {
+    "date": "2026-10-28",
+    "disc": "CMP2303",
+    "title": "XII Congresso de Ciência, Tecnologia e Inovação PUC Goiás",
+    "type": "aula"
+  },
+  {
+    "date": "2026-11-04",
+    "disc": "CMP2303",
+    "title": "Revisão integrada; comando INSERT",
+    "type": "aula"
+  },
+  {
+    "date": "2026-11-10",
+    "disc": "CMP2303",
+    "title": "Comando UPDATE",
+    "type": "aula"
+  },
+  {
+    "date": "2026-11-11",
+    "disc": "CMP2303",
+    "title": "Comando DELETE; integridade referencial (CASCADE etc.)",
+    "type": "aula"
+  },
+  {
+    "date": "2026-11-17",
+    "disc": "CMP2303",
+    "title": "Exercícios práticos de DML",
+    "type": "aula"
+  },
+  {
+    "date": "2026-11-18",
+    "disc": "CMP2303",
+    "title": "Comando SELECT básico; operadores e mini-projeto Java",
+    "type": "aula"
+  },
+  {
+    "date": "2026-11-24",
+    "disc": "CMP2303",
+    "title": "Funções de agregação; subconsultas",
+    "type": "aula"
+  },
+  {
+    "date": "2026-11-25",
+    "disc": "CMP2303",
+    "title": "HAVING; JOINs (INNER, LEFT, RIGHT, FULL)",
+    "type": "aula"
+  },
+  {
+    "date": "2026-12-02",
+    "disc": "CMP2303",
+    "title": "Acompanhamento do mini-projeto",
+    "type": "aula"
+  },
+  {
+    "date": "2026-12-08",
+    "disc": "CMP2303",
+    "title": "Correção do mini-projeto",
+    "type": "aula"
+  },
+  {
+    "date": "2026-12-09",
+    "disc": "CMP2303",
+    "title": "Correção do mini-projeto; Prova substitutiva",
+    "type": "aula"
+  },
+  {
+    "date": "2026-12-15",
+    "disc": "CMP2303",
+    "title": "Entrega dos resultados",
+    "type": "aula"
+  },
+  {
+    "date": "2026-12-16",
+    "disc": "CMP2303",
+    "title": "Entrega dos resultados; Encerramento do semestre",
+    "type": "aula"
+  },
+  {
+    "date": "2026-09-16",
+    "disc": "CMP2303",
+    "title": "Avaliação 1a N1",
+    "type": "avaliacao",
+    "desc": "Nesta mesma aula: apresentação das ferramentas CASE (BrModelo, draw.io, MySQL Workbench)."
+  },
+  {
+    "date": "2026-10-07",
+    "disc": "CMP2303",
+    "title": "Avaliação 2a N1",
+    "type": "avaliacao"
+  },
+  {
+    "date": "2026-11-03",
+    "disc": "CMP2303",
+    "title": "Avaliação Interdisciplinar (AI)",
+    "type": "avaliacao"
+  },
+  {
+    "date": "2026-12-01",
+    "disc": "CMP2303",
+    "title": "1a Avaliação N2",
+    "type": "avaliacao"
+  },
+  {
+    "date": "2026-10-31",
+    "disc": "CMP2303",
+    "title": "AED - prazo para compartilhar trabalho no Teams (até fim de outubro)",
+    "type": "aed"
+  },
+  {
+    "date": "2026-08-10",
+    "disc": "CMP1024",
+    "title": "Apresentação do plano de ensino; Princípios da Governança Corporativa",
+    "type": "aula"
+  },
+  {
+    "date": "2026-08-13",
+    "disc": "CMP1024",
+    "title": "Estudo de caso: Governança Corporativa",
+    "type": "aula"
+  },
+  {
+    "date": "2026-08-17",
+    "disc": "CMP1024",
+    "title": "Responsabilidades da Governança Corporativa",
+    "type": "aula"
+  },
+  {
+    "date": "2026-08-20",
+    "disc": "CMP1024",
+    "title": "Estudo de caso: Responsabilidades da Governança Corporativa",
+    "type": "aula"
+  },
+  {
+    "date": "2026-08-24",
+    "disc": "CMP1024",
+    "title": "Alinhamento entre estratégia corporativa e TI",
+    "type": "aula"
+  },
+  {
+    "date": "2026-08-27",
+    "disc": "CMP1024",
+    "title": "Estudo de caso: Alinhamento estratégia x TI",
+    "type": "aula"
+  },
+  {
+    "date": "2026-08-31",
+    "disc": "CMP1024",
+    "title": "Governança de Tecnologia da Informação",
+    "type": "aula"
+  },
+  {
+    "date": "2026-09-03",
+    "disc": "CMP1024",
+    "title": "Estudo de caso: Governança de TI",
+    "type": "aula"
+  },
+  {
+    "date": "2026-09-14",
+    "disc": "CMP1024",
+    "title": "Responsabilidades da Governança de TI",
+    "type": "aula"
+  },
+  {
+    "date": "2026-09-17",
+    "disc": "CMP1024",
+    "title": "Modelos e Dicionários de Governança de TI",
+    "type": "aula"
+  },
+  {
+    "date": "2026-09-21",
+    "disc": "CMP1024",
+    "title": "Estudo de caso: Modelos e Dicionários de Governança de TI",
+    "type": "aula"
+  },
+  {
+    "date": "2026-09-24",
+    "disc": "CMP1024",
+    "title": "Capacidades da Governança de TI",
+    "type": "aula"
+  },
+  {
+    "date": "2026-09-28",
+    "disc": "CMP1024",
+    "title": "Estudo de caso: Capacidades da Governança de TI",
+    "type": "aula"
+  },
+  {
+    "date": "2026-10-01",
+    "disc": "CMP1024",
+    "title": "Centralização vs. Descentralização da Governança em TI",
+    "type": "aula"
+  },
+  {
+    "date": "2026-10-05",
+    "disc": "CMP1024",
+    "title": "Estudo de caso: Centralização vs. Descentralização",
+    "type": "aula"
+  },
+  {
+    "date": "2026-10-08",
+    "disc": "CMP1024",
+    "title": "Processo de decisão na Governança de TI",
+    "type": "aula"
+  },
+  {
+    "date": "2026-10-19",
+    "disc": "CMP1024",
+    "title": "Implementação da Governança de TI",
+    "type": "aula"
+  },
+  {
+    "date": "2026-10-22",
+    "disc": "CMP1024",
+    "title": "Estudo de caso: Implementação da Governança de TI",
+    "type": "aula"
+  },
+  {
+    "date": "2026-10-26",
+    "disc": "CMP1024",
+    "title": "XII Congresso C&T&I PUC Goiás - sem aula presencial",
+    "type": "aula"
+  },
+  {
+    "date": "2026-10-29",
+    "disc": "CMP1024",
+    "title": "XII Congresso C&T&I PUC Goiás - sem aula presencial",
+    "type": "aula"
+  },
+  {
+    "date": "2026-11-05",
+    "disc": "CMP1024",
+    "title": "Controles para a Governança de TI",
+    "type": "aula"
+  },
+  {
+    "date": "2026-11-09",
+    "disc": "CMP1024",
+    "title": "COBIT e Objetivos de Controle",
+    "type": "aula"
+  },
+  {
+    "date": "2026-11-12",
+    "disc": "CMP1024",
+    "title": "Estudo de caso: COBIT",
+    "type": "aula"
+  },
+  {
+    "date": "2026-11-16",
+    "disc": "CMP1024",
+    "title": "CMMI - conceitos e estudo de caso",
+    "type": "aula"
+  },
+  {
+    "date": "2026-11-23",
+    "disc": "CMP1024",
+    "title": "Devolutiva P3; conceitos de ITIL",
+    "type": "aula"
+  },
+  {
+    "date": "2026-11-26",
+    "disc": "CMP1024",
+    "title": "Estudo de caso: ITIL",
+    "type": "aula"
+  },
+  {
+    "date": "2026-11-30",
+    "disc": "CMP1024",
+    "title": "Gerenciamento e Auditoria",
+    "type": "aula"
+  },
+  {
+    "date": "2026-12-03",
+    "disc": "CMP1024",
+    "title": "Planejamento e Controle da TI",
+    "type": "aula"
+  },
+  {
+    "date": "2026-12-07",
+    "disc": "CMP1024",
+    "title": "Estudo de caso: Planejamento e Controle da TI - ENTREGA DA AED",
+    "type": "aula"
+  },
+  {
+    "date": "2026-12-17",
+    "disc": "CMP1024",
+    "title": "Entrega das notas finais aos alunos",
+    "type": "aula"
+  },
+  {
+    "date": "2026-12-18",
+    "disc": "CMP1024",
+    "title": "Entrega das pautas na secretaria",
+    "type": "aula"
+  },
+  {
+    "date": "2026-09-10",
+    "disc": "CMP1024",
+    "title": "Avaliação P1",
+    "type": "avaliacao"
+  },
+  {
+    "date": "2026-10-15",
+    "disc": "CMP1024",
+    "title": "Avaliação P2",
+    "type": "avaliacao"
+  },
+  {
+    "date": "2026-11-19",
+    "disc": "CMP1024",
+    "title": "Avaliação P3",
+    "type": "avaliacao"
+  },
+  {
+    "date": "2026-12-10",
+    "disc": "CMP1024",
+    "title": "Avaliação P4",
+    "type": "avaliacao"
+  },
+  {
+    "date": "2026-12-14",
+    "disc": "CMP1024",
+    "title": "Avaliação substitutiva",
+    "type": "avaliacao",
+    "desc": "Nesta mesma aula: devolutiva da Avaliação P4."
+  },
+  {
+    "date": "2026-12-07",
+    "disc": "CMP1024",
+    "title": "Entrega da AED (Estudo de Caso Governança de TI)",
+    "type": "aed"
+  },
+  {
+    "date": "2026-09-07",
+    "disc": "FERIADO",
+    "title": "Independência do Brasil",
+    "type": "feriado"
+  },
+  {
+    "date": "2026-10-12",
+    "disc": "FERIADO",
+    "title": "Nossa Senhora Aparecida - Padroeira do Brasil",
+    "type": "feriado"
+  },
+  {
+    "date": "2026-11-02",
+    "disc": "FERIADO",
+    "title": "Dia de Todos os Santos / Finados",
+    "type": "feriado"
+  }
+]</script>
+<script type="application/json" id="disc-meta">
+{
+  "FIT1620": {"name":"Teologia, Ciências Exatas e Tecnológicas", "color":"#A63446"},
+  "CMP2303": {"name":"Projeto de Banco de Dados", "color":"#1B6E62"},
+  "CMP1024": {"name":"Governança em Tecnologia da Informação", "color":"#AD7418"},
+  "FERIADO": {"name":"Feriados", "color":"#8A8578"}
+}
+</script>
+
+<script>
+// ---- light / dark theme ----
+const THEME_KEY = 'calendarioMaterias.theme';
+function getPreferredTheme(){
+  try {
+    const saved = localStorage.getItem(THEME_KEY);
+    if (saved === 'light' || saved === 'dark') return saved;
+  } catch (e) { /* storage unavailable */ }
+  return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+}
+function applyTheme(theme){
+  document.documentElement.setAttribute('data-theme', theme);
+}
+function setTheme(theme){
+  applyTheme(theme);
+  try { localStorage.setItem(THEME_KEY, theme); } catch (e) { /* storage unavailable */ }
+}
+applyTheme(getPreferredTheme());
+document.getElementById('themeToggle').addEventListener('click', () => {
+  const current = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+  setTheme(current === 'dark' ? 'light' : 'dark');
+});
+
+const events = JSON.parse(document.getElementById('events-data').textContent);
+const discMeta = JSON.parse(document.getElementById('disc-meta').textContent);
+const totalCourses = 5;
+const loadedCourses = 3;
+const activeDiscs = new Set(Object.keys(discMeta));
+
+// "concluído" days — persisted to localStorage when available (falls back
+// to in-memory only, e.g. inside a sandboxed preview).
+const STORAGE_KEY = 'calendarioMaterias.doneDays';
+let markedDays = new Set();
+try {
+  const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+  markedDays = new Set(saved);
+} catch (e) { markedDays = new Set(); }
+
+function saveMarkedDays(){
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify([...markedDays])); }
+  catch (e) { /* storage unavailable — state stays in memory for this session */ }
+}
+
+const byDate = {};
+events.forEach(e => { (byDate[e.date] = byDate[e.date] || []).push(e); });
+
+// ---- progress dots ----
+const progressEl = document.getElementById('progress');
+let dotsHtml = '';
+for (let i = 0; i < totalCourses; i++) {
+  dotsHtml += `<span class="dot ${i < loadedCourses ? 'filled' : ''}"></span>`;
+}
+progressEl.innerHTML = dotsHtml + `<span class="progress-label">${loadedCourses} de ${totalCourses} matérias carregadas</span>`;
+
+// ---- legend ----
+const legendEl = document.getElementById('legend');
+let legendHtml = '';
+Object.entries(discMeta).forEach(([code, meta]) => {
+  legendHtml += `<label data-disc="${code}">
+    <input type="checkbox" checked data-disc="${code}">
+    <span class="swatch" style="background:${meta.color}"></span>
+    <span>${meta.name}</span>
+  </label>`;
+});
+legendHtml += `<span class="exam-key"><span class="mini-ring"></span> Dia de prova (cor da matéria)</span>`;
+legendHtml += `<span class="aed-key">⚑ AED</span>`;
+legendEl.innerHTML = legendHtml;
+
+legendEl.querySelectorAll('label').forEach(label => {
+  label.addEventListener('click', (ev) => {
+    ev.preventDefault();
+    const code = label.dataset.disc;
+    const input = label.querySelector('input');
+    const nowChecked = !input.checked;
+    input.checked = nowChecked;
+    label.classList.toggle('off', !nowChecked);
+    if (nowChecked) activeDiscs.add(code); else activeDiscs.delete(code);
+    renderCalendar();
+  });
+});
+
+// ---- calendar rendering ----
+const monthNames = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
+const weekdays = ["D","S","T","Q","Q","S","S"];
+const weekdaysFull = ["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"];
+const months = [{y:2026,m:7},{y:2026,m:8},{y:2026,m:9},{y:2026,m:10},{y:2026,m:11}];
+const calEl = document.getElementById('calendar');
+const todayStr = new Date().toISOString().slice(0,10);
+
+// Builds a conic-gradient split into N equal color portions — one per
+// exam that day, colored by that exam's discipline. This is what gives
+// the day-cell border its "pie slice" striped look.
+function examBorderGradient(colors){
+  const n = colors.length;
+  if (n === 1) return `conic-gradient(${colors[0]}, ${colors[0]})`;
+  const stops = [];
+  colors.forEach((c, i) => {
+    const start = (i / n * 100).toFixed(3);
+    const end = ((i + 1) / n * 100).toFixed(3);
+    stops.push(`${c} ${start}%`, `${c} ${end}%`);
+  });
+  return `conic-gradient(${stops.join(', ')})`;
+}
+
+// Same idea as examBorderGradient, but as a left-to-right stripe —
+// used to fill the exam chip inside the day cell (and never gets
+// truncated away like a regular event chip would).
+function examStripeGradient(colors){
+  if (colors.length === 1) return colors[0];
+  const n = colors.length;
+  const stops = [];
+  colors.forEach((c, i) => {
+    const start = (i / n * 100).toFixed(3);
+    const end = ((i + 1) / n * 100).toFixed(3);
+    stops.push(`${c} ${start}%`, `${c} ${end}%`);
+  });
+  return `linear-gradient(to right, ${stops.join(', ')})`;
+}
+
+function renderCalendar(){
+  calEl.innerHTML = '';
+  months.forEach(({y, m}) => {
+    const first = new Date(y, m, 1);
+    const startDay = first.getDay();
+    const daysInMonth = new Date(y, m + 1, 0).getDate();
+
+    const monthDiv = document.createElement('div');
+    monthDiv.className = 'month';
+    monthDiv.innerHTML = `<h2>${monthNames[m]} de ${y}</h2>`;
+
+    const grid = document.createElement('div');
+    grid.className = 'grid';
+
+    weekdays.forEach((wd,i) => {
+      const wdEl = document.createElement('div');
+      wdEl.className = 'wd';
+      wdEl.textContent = wd;
+      grid.appendChild(wdEl);
+    });
+
+    for (let i = 0; i < startDay; i++) {
+      const empty = document.createElement('div');
+      empty.className = 'day empty';
+      grid.appendChild(empty);
+    }
+
+    for (let d = 1; d <= daysInMonth; d++) {
+      const dateStr = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+      const dow = new Date(y, m, d).getDay();
+      const allDayEvents = byDate[dateStr] || [];
+      const dayEvents = allDayEvents.filter(e => activeDiscs.has(e.disc));
+      const examColors = dayEvents
+        .filter(e => e.type === 'avaliacao')
+        .map(e => (discMeta[e.disc] || {color:'#8A8578'}).color);
+      const hasExam = examColors.length > 0;
+
+      const dayEl = document.createElement('div');
+      dayEl.className = 'day'
+        + ((dow === 0 || dow === 6) ? ' weekend' : '')
+        + (dateStr === todayStr ? ' today' : '')
+        + (hasExam ? ' has-exam' : '')
+        + (dayEvents.length ? ' has-events' : '')
+        + (markedDays.has(dateStr) ? ' done' : '');
+
+      if (hasExam) {
+        dayEl.style.setProperty('--exam-grad', examBorderGradient(examColors));
+      }
+
+      let html = `<div class="num">${d}</div>`;
+
+      if (dayEvents.length) {
+        const examEvents = dayEvents.filter(e => e.type === 'avaliacao');
+        const otherEvents = dayEvents.filter(e => e.type !== 'avaliacao');
+
+        // desktop text chips: the exam chip (if any) always shows first,
+        // in full — never hidden behind "+N" — since it's the most
+        // important thing on the day. Remaining slots go to other events.
+        const MAX_CHIPS = 2;
+        const examSlot = examEvents.length ? 1 : 0;
+        const otherSlots = Math.max(0, MAX_CHIPS - examSlot);
+
+        html += '<div class="evts-desktop">';
+
+        if (examEvents.length) {
+          const label = examEvents.length > 1
+            ? `★ ${examEvents.length} provas neste dia`
+            : `★ ${examEvents[0].title}`;
+          html += `<div class="evt evt-exam" style="background:${examStripeGradient(examColors)}">${label}</div>`;
+        }
+
+        otherEvents.slice(0, otherSlots).forEach(e => {
+          const meta = discMeta[e.disc] || {color:'#666', name:e.disc};
+          const icon = e.type === 'aed' ? '⚑ ' : '';
+          const isFer = e.disc === 'FERIADO';
+          const cls = isFer ? 'evt-fer' : '';
+          html += `<div class="evt${cls ? ' ' + cls : ''}" style="background:${meta.color}">${icon}${e.title}</div>`;
+        });
+
+        const hiddenOthers = Math.max(0, otherEvents.length - otherSlots);
+        if (hiddenOthers > 0) {
+          html += `<div class="more-chip">+${hiddenOthers}</div>`;
+        }
+        html += '</div>';
+
+        // mobile dots
+        html += '<div class="evts-mobile">';
+        dayEvents.slice(0, 5).forEach(e => {
+          const meta = discMeta[e.disc] || {color:'#666'};
+          const isExam = e.type === 'avaliacao';
+          html += `<span class="pdot${isExam ? ' pdot-exam' : ''}" style="background:${meta.color}"></span>`;
+        });
+        if (dayEvents.length > 5) html += `<span class="pmore">+${dayEvents.length - 5}</span>`;
+        html += '</div>';
+      }
+
+      dayEl.innerHTML = html;
+      if (dayEvents.length) {
+        dayEl.addEventListener('click', () => openSheet(dateStr, dayEvents));
+      }
+      grid.appendChild(dayEl);
+    }
+
+    monthDiv.appendChild(grid);
+    calEl.appendChild(monthDiv);
+  });
+}
+
+// ---- detail sheet ----
+const overlay = document.getElementById('overlay');
+const sheetTitle = document.getElementById('sheetTitle');
+const sheetBody = document.getElementById('sheetBody');
+
+function openSheet(dateStr, dayEvents){
+  const [y,m,d] = dateStr.split('-').map(Number);
+  const dt = new Date(y, m-1, d);
+  sheetTitle.textContent = `${weekdaysFull[dt.getDay()]}, ${d} de ${monthNames[m-1]}`.toLowerCase()
+    .replace(/^./, c => c.toUpperCase());
+
+  const isDone = markedDays.has(dateStr);
+  let html = `<label class="done-toggle${isDone ? ' checked' : ''}" id="doneToggle">
+    <input type="checkbox" id="doneCheck" ${isDone ? 'checked' : ''}>
+    <span>Marcar este dia como concluído</span>
+  </label>`;
+
+  html += dayEvents.map(e => {
+    const meta = discMeta[e.disc] || {name:e.disc, color:'#8A8578'};
+    const isExam = e.type === 'avaliacao';
+    const tagText = isExam ? '★ AVALIAÇÃO / PROVA' : (e.type === 'aed' ? '⚑ AED' : 'AULA');
+    const borderStyle = `style="border-left-color:${meta.color}"`;
+    const tagStyle = isExam ? `style="color:${meta.color}"` : '';
+    const descHtml = e.desc ? `<div class="evt-desc">${e.desc}</div>` : '';
+    return `<div class="event-card${isExam ? ' exam' : ''}" ${borderStyle}>
+      <div>
+        <div class="disc-name">${meta.name}</div>
+        <div class="evt-title">${e.title}</div>
+        ${descHtml}
+        <div class="tag" ${tagStyle}>${tagText}</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  sheetBody.innerHTML = html;
+
+  const doneCheck = document.getElementById('doneCheck');
+  const doneToggle = document.getElementById('doneToggle');
+  doneCheck.addEventListener('change', () => {
+    if (doneCheck.checked) markedDays.add(dateStr);
+    else markedDays.delete(dateStr);
+    doneToggle.classList.toggle('checked', doneCheck.checked);
+    saveMarkedDays();
+    renderCalendar();
+  });
+
+  overlay.classList.add('open');
+}
+function closeSheet(){ overlay.classList.remove('open'); }
+document.getElementById('sheetClose').addEventListener('click', closeSheet);
+overlay.addEventListener('click', (ev) => { if (ev.target === overlay) closeSheet(); });
+document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape') closeSheet(); });
+
+renderCalendar();
+</script>
+</body>
+</html>
