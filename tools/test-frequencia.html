@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head><meta charset="UTF-8">
+<!-- Teste do contador de faltas. Carrega o index.html real num iframe,
+     semeia faltas no localStorage e RECARREGA o iframe a cada cenário —
+     as variáveis do script são const de topo, então não dá para injetar
+     estado de fora; recarregar é o que exercita o caminho real.
+     Rodar com:
+     google-chrome --headless --window-size=1200,900 --dump-dom .../tools/test-frequencia.html -->
+</head>
+<body>
+<iframe id="app" src="../index.html" style="width:1100px;height:900px;border:0"></iframe>
+<pre id="result">rodando…</pre>
+<script>
+const KEY = 'calendarioMaterias.missedClasses';
+const out = [];
+const ok = (nome, cond, extra = '') => out.push(`${cond ? 'PASS' : 'FALHOU'} — ${nome}${extra ? ': ' + extra : ''}`);
+const frame = document.getElementById('app');
+
+const recarregar = () => new Promise(res => {
+  frame.addEventListener('load', function once() {
+    frame.removeEventListener('load', once);
+    setTimeout(res, 120);
+  });
+  frame.contentWindow.location.reload();
+});
+
+const dados = () => {
+  const d = frame.contentDocument;
+  return {
+    eventos: JSON.parse(d.getElementById('events-data').textContent),
+    meta: JSON.parse(d.getElementById('disc-meta').textContent),
+  };
+};
+const encontrosDe = (eventos, disc) =>
+  eventos.filter(e => e.disc === disc && (e.type === 'aula' || e.type === 'avaliacao'));
+
+// semeia as N primeiras datas de encontro da matéria como falta
+function semear(eventos, disc, quantasDatas) {
+  const enc = encontrosDe(eventos, disc);
+  const datas = [...new Set(enc.map(e => e.date))].sort().slice(0, quantasDatas);
+  localStorage.setItem(KEY, JSON.stringify(
+    enc.filter(e => datas.includes(e.date)).map(e => `${e.date}|${e.disc}|${e.type}|${e.title}`)));
+}
+const freqDe = disc => frame.contentWindow.frequenciaPorDisciplina().find(f => f.code === disc);
+
+frame.addEventListener('load', async function inicio() {
+  frame.removeEventListener('load', inicio);
+  await new Promise(r => setTimeout(r, 200));
+  try {
+    const { eventos, meta } = dados();
+    const disc = 'CMP2303';
+    const base = freqDe(disc);
+
+    // 1) teto = 25% dos encontros, arredondado para baixo
+    ok('teto = 25% dos encontros (floor)', base.teto === Math.floor(base.total * 0.25),
+      `${base.total} encontros → teto ${base.teto}`);
+
+    // 2) faltar exatamente o teto ainda aprova
+    semear(eventos, disc, base.teto);
+    await recarregar();
+    let f = freqDe(disc);
+    ok('faltando o teto: restam 0', f.restam === 0, `usadas ${f.usadas}/${f.teto}`);
+    ok('faltando o teto: presença ainda >= 75%', f.presenca >= 0.75, (f.presenca * 100).toFixed(2) + '%');
+
+    // 3) uma falta além do teto reprova
+    semear(eventos, disc, base.teto + 1);
+    await recarregar();
+    f = freqDe(disc);
+    ok('uma falta além do teto: restam -1', f.restam === -1, `usadas ${f.usadas}/${f.teto}`);
+    ok('uma falta além do teto: presença < 75%', f.presenca < 0.75, (f.presenca * 100).toFixed(2) + '%');
+    ok('linha marcada como reprovado', !!frame.contentDocument.querySelector('.freq-row.reprovado'));
+
+    // 4) aula + prova da mesma matéria no mesmo dia = 1 encontro / 1 falta
+    const porData = {};
+    eventos.filter(e => e.type === 'aula' || e.type === 'avaliacao')
+      .forEach(e => { const k = e.disc + '@' + e.date; porData[k] = (porData[k] || 0) + 1; });
+    const duplo = Object.entries(porData).find(([, n]) => n > 1);
+    if (duplo) {
+      const [dDisc, dData] = duplo[0].split('@');
+      const doDia = eventos.filter(e => e.disc === dDisc && e.date === dData && (e.type === 'aula' || e.type === 'avaliacao'));
+      localStorage.setItem(KEY, JSON.stringify(doDia.map(e => `${e.date}|${e.disc}|${e.type}|${e.title}`)));
+      await recarregar();
+      const fd = freqDe(dDisc);
+      ok('aula + prova no mesmo dia = 1 falta', fd.usadas === 1,
+        `${doDia.length} eventos em ${dData} (${dDisc}) → ${fd.usadas} falta`);
+    } else out.push('SKIP — nenhum dia com 2 eventos da mesma matéria');
+
+    // 5) AED fora da contagem de encontros
+    const comAed = eventos.find(e => e.type === 'aed' && meta[e.disc]);
+    const fAed = freqDe(comAed.disc);
+    const datasAula = new Set(encontrosDe(eventos, comAed.disc).map(e => e.date));
+    ok('AED fora da contagem', fAed.total === datasAula.size, `total ${fAed.total} = ${datasAula.size} datas`);
+
+    // 6) FERIADO não é matéria
+    ok('FERIADO não listado como matéria',
+      !frame.contentWindow.frequenciaPorDisciplina().some(x => x.code === 'FERIADO'));
+
+    // 7) uma linha por matéria, e zerado quando não há falta
+    localStorage.removeItem(KEY);
+    await recarregar();
+    const linhas = frame.contentDocument.querySelectorAll('.freq-row').length;
+    const materias = Object.keys(meta).filter(c => c !== 'FERIADO').length;
+    ok('uma linha por matéria', linhas === materias, `${linhas} linhas / ${materias} matérias`);
+    ok('sem falta marcada, nada em alerta',
+      !frame.contentDocument.querySelector('.freq-row.atencao, .freq-row.limite, .freq-row.reprovado'));
+
+    // 8) estado de atenção a 2 faltas do teto
+    semear(eventos, disc, base.teto - 2);
+    await recarregar();
+    ok('estado de atenção perto do teto',
+      !!frame.contentDocument.querySelector('.freq-row.atencao'), `restam ${freqDe(disc).restam}`);
+
+    // 9) clicar em Faltei atualiza o painel na hora (sem recarregar)
+    localStorage.removeItem(KEY);
+    await recarregar();
+    const d2 = frame.contentDocument;
+    // o número grande é um nó de texto seguido de um <span> com o rótulo
+    const restantes = () => [...d2.querySelectorAll('.freq-big')]
+      .map(el => Number(el.firstChild.textContent.trim()));
+    const somaAntes = restantes().reduce((a, b) => a + b, 0);
+    const dia = [...d2.querySelectorAll('.day.has-events')][0];
+    dia.click();
+    d2.querySelector('.miss-btn').click();
+    const somaDepois = restantes().reduce((a, b) => a + b, 0);
+    ok('painel reage ao clique em Faltei', somaDepois === somaAntes - 1,
+      `restantes somavam ${somaAntes} → ${somaDepois}`);
+    const usadas = [...d2.querySelectorAll('.freq-sub')].filter(s => /^[1-9]/.test(s.textContent)).length;
+    ok('sub-rótulo mostra 1 falta usada', usadas === 1, `${usadas} matéria(s) com falta`);
+
+    // 10) separação EAD x presencial vem do disc-meta (lido dos planos)
+    localStorage.removeItem(KEY);
+    await recarregar();
+    const d3 = frame.contentDocument;
+    const todas = frame.contentWindow.frequenciaPorDisciplina();
+    const eadEsperado = Object.entries(meta).filter(([, m]) => m.modalidade === 'ead').map(([c]) => c).sort();
+    const eadCalc = todas.filter(f => f.ead).map(f => f.code).sort();
+    ok('modalidade EAD vem do disc-meta', JSON.stringify(eadCalc) === JSON.stringify(eadEsperado),
+      eadCalc.join(', ') || '(nenhuma)');
+    ok('toda matéria tem modalidade definida',
+      todas.every(f => f.meta.modalidade === 'ead' || f.meta.modalidade === 'presencial'),
+      todas.filter(f => !f.meta.modalidade).map(f => f.code).join(', ') || 'todas ok');
+
+    const grupos = [...d3.querySelectorAll('.freq-group-title')].map(e => e.textContent);
+    ok('painel tem os dois grupos', grupos.includes('Presencial') && grupos.includes('EAD'), grupos.join(' + '));
+
+    const linhasEad = [...d3.querySelectorAll('.freq-group')]
+      .find(g => g.querySelector('.freq-group-title').textContent === 'EAD')
+      .querySelectorAll('.freq-row').length;
+    ok('grupo EAD tem as matérias certas', linhasEad === eadEsperado.length,
+      `${linhasEad} linhas / ${eadEsperado.length} matérias EAD`);
+
+    // 11) rótulo do botão muda em matéria EAD
+    const eventos2 = JSON.parse(d3.getElementById('events-data').textContent);
+    const discEad = eadEsperado[0];
+    const dataEad = eventos2.find(e => e.disc === discEad && e.type === 'aula').date;
+    const diaEad = [...d3.querySelectorAll('.day.has-events')].find(day => {
+      const n = day.querySelector('.num');
+      return n && day.closest('.month') && Number(n.textContent) === Number(dataEad.slice(8));
+    });
+    if (diaEad) {
+      diaEad.click();
+      const rotulos = [...d3.querySelectorAll('.miss-btn')].map(b => b.textContent.trim());
+      ok('botão diz "Não entreguei" em matéria EAD', rotulos.includes('Não entreguei'), rotulos.join(' / '));
+    } else out.push('SKIP — não achei a célula do dia EAD');
+
+    localStorage.removeItem(KEY);
+  } catch (err) {
+    out.push('ERRO: ' + err.message + ' | ' + err.stack.split('\n')[1]);
+  }
+  document.getElementById('result').textContent = out.join('\n');
+});
+</script>
+</body>
+</html>

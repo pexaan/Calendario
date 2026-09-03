@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Página de teste: mede se 3 chips caem dentro do card do dia sem
+     clipping, usando o CSS real do site. Rodar com:
+     google-chrome --headless --window-size=<W>,900 --dump-dom .../tools/measure-chips.html
+     e ler o conteúdo de #result. -->
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<div class="wrap">
+  <div class="grid" id="grid"></div>
+</div>
+<pre id="result">medindo…</pre>
+<script>
+const grid = document.getElementById('grid');
+// 7 colunas como no calendário real; só a primeira célula é medida
+for (let i = 0; i < 7; i++) {
+  const day = document.createElement('div');
+  day.className = 'day has-events' + (i === 0 ? ' probe' : '');
+  // pior caso: chip de prova (tem borda de 2px, é o mais alto) + 2 aulas
+  day.innerHTML = `<div class="num">15</div>
+    <div class="evts-desktop">
+      <div class="evt evt-exam" style="background:#A63446">★ Avaliação P1</div>
+      <div class="evt" style="background:#1B6E62">Projeto de Banco de Dados</div>
+      <div class="evt" style="background:#AD7418">Governança em TI</div>
+    </div>`;
+  grid.appendChild(day);
+}
+
+requestAnimationFrame(() => {
+  const day = grid.querySelector('.probe');
+  const box = day.querySelector('.evts-desktop');
+  const chips = [...box.querySelectorAll('.evt')];
+  const dayRect = day.getBoundingClientRect();
+  const chipRects = chips.map(c => c.getBoundingClientRect());
+  const last = chipRects[chipRects.length - 1];
+  // borda de baixo do card, descontando o padding-bottom (3px)
+  const limite = dayRect.bottom - 3;
+  const sobra = limite - last.bottom;
+  const linhas = [
+    `viewport: ${window.innerWidth}px`,
+    `altura do card: ${dayRect.height.toFixed(1)}px`,
+    `altura de 1 chip: ${chipRects[0].height.toFixed(1)}px`,
+    `fim do 3o chip: ${(last.bottom - dayRect.top).toFixed(1)}px (card tem ${dayRect.height.toFixed(1)}px)`,
+    `sobra: ${sobra.toFixed(1)}px`,
+    `3 chips visiveis: ${sobra >= 0 ? 'SIM' : 'NAO — CLIPPING'}`,
+    `overflow interno: ${box.scrollHeight > box.clientHeight + 0.5 ? 'SIM (' + box.scrollHeight + '>' + box.clientHeight + ')' : 'nao'}`,
+  ];
+  document.getElementById('result').textContent = linhas.join(' | ');
+});
+</script>
+</body>
+</html>

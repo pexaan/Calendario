@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<!-- Teste funcional da marcação de falta. Carrega o index.html real num
+     iframe (mesma origem, então dá acesso total) e simula os cliques.
+     Rodar com:
+     google-chrome --headless --window-size=1200,900 --dump-dom .../tools/test-faltas.html
+     e ler o conteúdo de #result. -->
+</head>
+<body>
+<iframe id="app" src="../index.html" style="width:1100px;height:900px;border:0"></iframe>
+<pre id="result">rodando…</pre>
+<script>
+const out = [];
+const ok = (nome, cond, extra = '') => out.push(`${cond ? 'PASS' : 'FALHOU'} — ${nome}${extra ? ': ' + extra : ''}`);
+const frame = document.getElementById('app');
+
+frame.addEventListener('load', () => {
+  const w = frame.contentWindow;
+  const d = frame.contentDocument;
+  setTimeout(() => {
+    try {
+      localStorage.removeItem('calendarioMaterias.missedClasses');
+
+      // 1) achar um dia com 3 chips
+      const comTres = [...d.querySelectorAll('.day.has-events')]
+        .find(day => day.querySelectorAll('.evts-desktop .evt').length === 3);
+      ok('existe dia mostrando 3 chips', !!comTres,
+        comTres ? comTres.querySelector('.num').textContent : 'nenhum dia com 3 chips');
+      if (!comTres) throw new Error('sem dia de 3 chips');
+
+      const chipsAntes = comTres.querySelectorAll('.evts-desktop .evt').length;
+
+      // 2) abrir o painel do dia
+      comTres.click();
+      const aberto = d.getElementById('overlay').classList.contains('open');
+      ok('painel do dia abriu', aberto);
+
+      // 3) botões de falta presentes (um por evento, menos feriado)
+      const botoes = [...d.querySelectorAll('.miss-btn')];
+      const cards = [...d.querySelectorAll('.event-card')];
+      ok('tem botão Faltei nos eventos', botoes.length > 0, `${botoes.length} botões / ${cards.length} eventos`);
+
+      // 4) clicar em "Faltei" no primeiro evento
+      const rotuloAntes = botoes[0].textContent.trim();
+      botoes[0].click();
+      const rotuloDepois = botoes[0].textContent.trim();
+      ok('botão vira estado marcado', botoes[0].classList.contains('on') && rotuloDepois !== rotuloAntes,
+        `"${rotuloAntes}" -> "${rotuloDepois}"`);
+      ok('card do painel fica marcado', !!d.querySelector('.event-card.missed'));
+
+      // 5) persistiu no localStorage
+      const salvo = JSON.parse(localStorage.getItem('calendarioMaterias.missedClasses') || '[]');
+      ok('gravou no localStorage', salvo.length === 1, JSON.stringify(salvo));
+
+      // 6) o chip correspondente no card do dia ficou marcado
+      const marcados = d.querySelectorAll('.evts-desktop .evt.missed');
+      ok('chip do dia ficou marcado', marcados.length === 1,
+        marcados.length ? marcados[0].textContent.slice(0, 40) : 'nenhum');
+
+      // 7) a cor da matéria foi preservada (não pode ficar sem cor) e o
+      //    escurecimento vem do véu (sombra interna), que fica atrás do texto
+      const chip = marcados[0];
+      if (chip) {
+        const bg = w.getComputedStyle(chip).backgroundColor;
+        const sombra = w.getComputedStyle(chip).boxShadow;
+        const semCor = bg === 'rgba(0, 0, 0, 0)' || bg === 'transparent';
+        ok('chip mantém a cor da matéria', !semCor, bg);
+        ok('chip recebe véu escuro (sombra interna)', /inset/.test(sombra), sombra.slice(0, 60));
+
+        // e um chip normal da mesma tela NÃO tem o véu
+        const normal = [...d.querySelectorAll('.evts-desktop .evt')].find(c => !c.classList.contains('missed'));
+        if (normal) {
+          ok('chip sem falta não tem véu', !/inset/.test(w.getComputedStyle(normal).boxShadow));
+        }
+      }
+
+      // 8) o número de chips não mudou por causa da marcação
+      ok('continua mostrando 3 chips', comTres.querySelectorAll('.evts-desktop .evt').length === chipsAntes);
+
+      // 9) desmarcar volta ao normal
+      const botoes2 = [...d.querySelectorAll('.miss-btn')];
+      botoes2[0].click();
+      const salvo2 = JSON.parse(localStorage.getItem('calendarioMaterias.missedClasses') || '[]');
+      ok('desmarcar limpa o estado', salvo2.length === 0 && d.querySelectorAll('.evt.missed').length === 0);
+
+      // 10) feriado não deve ter botão de falta
+      const feriadoDay = [...d.querySelectorAll('.day.has-events')]
+        .find(day => day.querySelector('.evt-fer'));
+      if (feriadoDay) {
+        feriadoDay.click();
+        const cardsF = [...d.querySelectorAll('.event-card')];
+        const semBotao = cardsF.filter(c => !c.querySelector('.miss-btn')).length;
+        ok('feriado não tem botão Faltei', semBotao > 0, `${semBotao} de ${cardsF.length} eventos sem botão`);
+      }
+
+      localStorage.removeItem('calendarioMaterias.missedClasses');
+    } catch (err) {
+      out.push('ERRO: ' + err.message);
+    }
+    document.getElementById('result').textContent = out.join('\n');
+  }, 400);
+});
+</script>
+</body>
+</html>

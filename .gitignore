@@ -1,0 +1,10 @@
+# PDFs dos planos de ensino: matéria-prima local do importador.
+# A pasta continua no repositório (o importador precisa dela), mas os PDFs
+# ficam de fora — são documentos da sua faculdade, não do projeto.
+planos/*
+!planos/LEIA-ME.md
+
+# Anotações locais de trabalho, não fazem parte do projeto publicado.
+tools/CONTEXTO.md
+
+node_modules/
