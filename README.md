@@ -237,9 +237,13 @@ O [`docs/ARQUITETURA.md`](docs/ARQUITETURA.md) explica as decisões do código q
 - [ ] Contagem regressiva para a próxima avaliação
 - [ ] Regra de frequência por carga horária, para as matérias EAD que contam horas em vez de encontros
 
-## 📄 Licença
+## 📄 Licença e créditos
 
 [MIT](LICENSE) — use, altere e publique à vontade.
+
+O ícone do calendário (`favicon.svg`) vem do [SVG Repo](https://www.svgrepo.com/).
+As fontes são [Fraunces](https://fonts.google.com/specimen/Fraunces) e
+[Inter](https://fonts.google.com/specimen/Inter), via Google Fonts.
 
 ---
 
